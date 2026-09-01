@@ -23,7 +23,7 @@ from . import tools
 bl_info = {
     "name": "Synchronize Workspaces",
     "author": "Michael Soluyanov (multlabs.com)",
-    "version": (1, 14),
+    "version": (1, 15),
     "blender": (4, 2, 0),
     "location": "View3D -> Top Bar",
     "description": "Synchronize 3D views between workspaces",
@@ -61,36 +61,46 @@ def get_biggest_area(workspace, type, checkscreen=False):
     return nextArea
 
 
+def _remember_sync_source(workspace, area=None):
+    """Store the last sync-enabled workspace/view used as copy source."""
+    sinchmanager.last_workspace = workspace.name
+    if area is None:
+        area = get_biggest_area(workspace, "VIEW_3D", True)
+    sinchmanager.last_area = area
+
+
 def update_workspace(args):
-    """Main component that performs the sync
-    args - dummy value from subscribe_rna"""
+    """Copy 3D view from the last sync-enabled workspace into the current one.
+
+    Workspaces with synch_active off are skipped: visiting them does not change
+    the remembered source, so the next sync-enabled workspace still receives
+    the view from the previous sync-enabled workspace.
+    """
     if not bpy.context.scene.synch_settings.active:
         return
+    # Sync-disabled workspace: leave last_* pointing at the last enabled source
     if not bpy.context.workspace.synch_active:
         return
 
-    if sinchmanager.last_workspace == bpy.context.workspace.name:
+    next1 = bpy.context.workspace
+    if sinchmanager.last_workspace == next1.name:
         return
     if sinchmanager.last_workspace not in bpy.data.workspaces:
-        sinchmanager.last_workspace = bpy.context.workspace.name
+        _remember_sync_source(next1)
         return
+
     prev = bpy.data.workspaces[sinchmanager.last_workspace]
-    next1 = bpy.context.workspace
-
     nextArea = get_biggest_area(next1, "VIEW_3D", True)
-    prevArea = sinchmanager.last_area
+    # Resolve source from the remembered sync-enabled workspace (not from a
+    # sync-disabled workspace we may have visited in between).
+    prevArea = get_biggest_area(prev, "VIEW_3D", False)
     if prevArea is None:
-        prevArea = get_biggest_area(prev, "VIEW_3D", False)
-
-    sinchmanager.last_area = nextArea
+        prevArea = sinchmanager.last_area
 
     if nextArea is None:
         return
-
-    sinchmanager.last_workspace = bpy.context.workspace.name
-    sinchmanager.last_area = nextArea
-
     if prevArea is None:
+        _remember_sync_source(next1, nextArea)
         return
 
     for ns3d in nextArea.spaces:
@@ -171,6 +181,7 @@ def update_workspace(args):
     nr3d.update()
     nextArea.tag_redraw()
 
+    _remember_sync_source(next1, nextArea)
 
 # Triggers when window's workspace is changed
 subscribe_to = bpy.types.Window, "workspace"
@@ -179,7 +190,11 @@ sinchmanager = sinchmanager_class()
 
 @persistent
 def load_handler(context, a):
-    sinchmanager.last_workspace = bpy.context.workspace.name
+    ws = bpy.context.workspace
+    if ws.synch_active:
+        _remember_sync_source(ws)
+    else:
+        sinchmanager.last_workspace = ws.name
     register_rna_sub()
 
 
@@ -206,6 +221,7 @@ class SYNCW_PT_link1(bpy.types.Panel):
         layout = self.layout
 
         layout.label(text="Synchronize 3D Views")
+        layout.label(text="Off workspaces are skipped")
         for w in bpy.data.workspaces:
             layout.prop(w, 'synch_active', text=w.name)
         
@@ -221,10 +237,21 @@ class SYNCW_PT_link1(bpy.types.Panel):
 
 
 def setCurrent(self, context):
-    if bpy.context.scene.synch_settings.active:
-        bigestarea = get_biggest_area(context.workspace, "VIEW_3D", True)
-        if bigestarea:
-            sinchmanager.last_workspace = bpy.context.workspace.name
+    """Update callback for global/workspace sync toggles."""
+    if not context.scene.synch_settings.active:
+        return None
+    ws = context.workspace
+    # Workspace sync off: do not replace the remembered sync-enabled source
+    if not ws.synch_active:
+        return None
+
+    # Sync just enabled (or global sync turned on): pull from last enabled source
+    if (sinchmanager.last_workspace
+            and sinchmanager.last_workspace != ws.name
+            and sinchmanager.last_workspace in bpy.data.workspaces):
+        update_workspace(context)
+    else:
+        _remember_sync_source(ws)
     return None
 
 
@@ -233,11 +260,13 @@ def drawheader(self, context):
     if bigestarea != context.area:
         return
 
-    # this is a derty hack if subscribe_rna will not work
-    if sinchmanager.last_workspace != bpy.context.workspace.name:
+    # Fallback if subscribe_rna did not fire on workspace switch
+    if sinchmanager.last_workspace != context.workspace.name:
         update_workspace(context)
 
-    sinchmanager.last_area = context.area
+    # Only sync-enabled workspaces become the next copy source
+    if context.scene.synch_settings.active and context.workspace.synch_active:
+        sinchmanager.last_area = context.area
 
     # toggle & popover.
     row = self.layout.row(align=True)

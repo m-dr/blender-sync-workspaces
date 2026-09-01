@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "synchronize_workspaces"
-version = "1.14.0"
+version = "1.15.0"
 name = "Synchronize Workspaces"
 tagline = "Synchronize 3D views between workspaces"
 maintainer = "Michael Soluyanov <to@multlabs.com>"
