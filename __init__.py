@@ -45,10 +45,12 @@ def check_screen(sc):
     return False
 
 
-def get_biggest_area(workspace, type, checkscreen=False):
+def get_biggest_area(workspace, type, checkscreen=False, ignore_temp=True):
     max_size = 0
     nextArea = None
     for screen in workspace.screens:
+        if ignore_temp and screen.name.startswith("temp"):
+            continue
         if(checkscreen):
             if not check_screen(screen):
                 continue
@@ -58,6 +60,9 @@ def get_biggest_area(workspace, type, checkscreen=False):
                 if size > max_size:
                     nextArea = area
                     max_size = size
+    # Fallback to include temp screens only if no normal screen area was found
+    if nextArea is None and ignore_temp:
+        return get_biggest_area(workspace, type, checkscreen=checkscreen, ignore_temp=False)
     return nextArea
 
 
@@ -91,9 +96,18 @@ def update_workspace(args):
 
     prev = bpy.data.workspaces[sinchmanager.last_workspace]
     nextArea = get_biggest_area(next1, "VIEW_3D", True)
-    # Resolve source from the remembered sync-enabled workspace (not from a
-    # sync-disabled workspace we may have visited in between).
-    prevArea = get_biggest_area(prev, "VIEW_3D", False)
+
+    # First prefer sinchmanager.last_area if it belongs to prev
+    prevArea = None
+    if sinchmanager.last_area:
+        for sc in prev.screens:
+            if not sc.name.startswith("temp") and sinchmanager.last_area in list(sc.areas):
+                prevArea = sinchmanager.last_area
+                break
+
+    # Resolve source from the remembered sync-enabled workspace (ignoring inactive temp screens)
+    if prevArea is None:
+        prevArea = get_biggest_area(prev, "VIEW_3D", False, ignore_temp=True)
     if prevArea is None:
         prevArea = sinchmanager.last_area
 
