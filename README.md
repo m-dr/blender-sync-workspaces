@@ -30,7 +30,6 @@ The `upstream` branch preserves the exact original vendor code with historical t
 ### 2. Automation & Maintenance Tooling
 * [`scripts/pull_upstream.py`](scripts/pull_upstream.py): Automated tool to check `extensions.blender.org`, download future upstream releases, and update the `upstream` branch.
 * [`scripts/build_extension.py`](scripts/build_extension.py): Automated builder that packages the extension into a compliant `.zip` archive in `dist/` with SHA-256 calculation.
-* [`AGENTS.md`](AGENTS.md): Complete Standard Operating Procedure for AI agents and cloud CI/CD workers.
 
 ---
 
