@@ -7,8 +7,8 @@ from . import tools
 bl_info = {
     "name": "Synchronize Workspaces",
     "author": "Michael Soluyanov (multlabs.com)",
-    "version": (1, 12),
-    "blender": (3, 0, 0),
+    "version": (1, 13),
+    "blender": (4, 2, 0),
     "location": "View3D -> Top Bar",
     "description": "Synchronize 3D views between workspaces",
     "warning": "",
@@ -97,8 +97,10 @@ def update_workspace(args):
         bpy.context.view_layer.update()
         if (ns3d.local_view is None):
 
-            override = {'area': nextArea}
-            bpy.ops.view3d.localview(override, frame_selected=False)
+            context_override = bpy.context.copy()
+            context_override["area"]  = nextArea
+            with bpy.context.temp_override(**context_override):
+                bpy.ops.view3d.localview(frame_selected=False)
         else:
             objectsn = [ob for ob in bpy.context.view_layer.objects
                         if ob.visible_get(viewport=ns3d)]
@@ -112,8 +114,10 @@ def update_workspace(args):
             bpy.context.view_layer.update()
 
     elif (ns3d.local_view is not None) and (ps3d.local_view is None):
-        override = {'area': nextArea}
-        bpy.ops.view3d.localview(override, frame_selected=False)
+        context_override = bpy.context.copy()
+        context_override["area"]  = nextArea
+        with bpy.context.temp_override(**context_override):
+            bpy.ops.view3d.localview(frame_selected=False)
 
     # region 3d settings:
     nr3d.view_distance = pr3d.view_distance
