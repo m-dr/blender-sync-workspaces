@@ -5,6 +5,7 @@ version = "1.15.0"
 name = "Synchronize Workspaces (DEV)"
 tagline = "Synchronize 3D views between workspaces"
 maintainer = "Michael Soluyanov <to@multlabs.com>"
+website = "https://github.com/m-dr/blender-sync-workspaces"
 
 type = "add-on"
 
@@ -15,4 +16,3 @@ blender_version_min = "4.2.0"
 license = [
   "SPDX:GPL-3.0-or-later",
 ]
-
