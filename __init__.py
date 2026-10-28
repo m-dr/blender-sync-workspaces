@@ -21,7 +21,7 @@ from bpy.app.handlers import persistent
 from . import tools
 
 bl_info = {
-    "name": "Synchronize Workspaces",
+    "name": "Synchronize Workspaces (DEV)",
     "author": "Michael Soluyanov (multlabs.com)",
     "version": (1, 15),
     "blender": (4, 2, 0),
