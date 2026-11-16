@@ -23,7 +23,7 @@ from . import tools
 bl_info = {
     "name": "Synchronize Workspaces (DEV)",
     "author": "Michael Soluyanov (multlabs.com)",
-    "version": (1, 15),
+    "version": (1, 15, 1),
     "blender": (4, 2, 0),
     "location": "View3D -> Top Bar",
     "description": "Synchronize 3D views between workspaces",
